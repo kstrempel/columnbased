@@ -31,3 +31,6 @@
 
 (defn lrow [row]
   (val (first row)))
+
+(defn lsync [db]
+  (l/sync (:db db)))

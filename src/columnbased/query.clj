@@ -1,5 +1,6 @@
 (ns columnbased.query
-  (:require [clojure.string :as str :only split])
+  (:require [clojure.string :as str :only split]
+            [clj-leveldb :as l])
   (:use [columnbased.core]
         [columnbased.table]
         [columnbased.insert]))
@@ -9,11 +10,12 @@
         table-id (:id info)
         last (:last info)
         key (create-table-key table-id)]
-    (map #(let [row (second %)]
-            (hash-map :id (:id (first row))
-                      :values (dissoc (apply merge (rest row)) :id)))
-         (group-by :id
-                   (map #(let [parts (reverse (str/split (first %) #"/"))]
-                           (hash-map :id (second parts)
-                                     (keyword (first parts)) (second %)))
-                        (literate db (str key 0) (str key (inc last))))))))
+    (let [current (atom -1)]
+      (map #(apply merge %)
+           (partition-by #(:id %)
+                         (map #(let [parts (reverse (str/split (first %) #"/"))]
+                                 (hash-map :id (second parts)
+                                           (keyword (first parts)) (second %)))
+                              (literate db
+                                        (str key (format-id 0))
+                                        (str key (format-id (inc last))))))))))
